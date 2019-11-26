@@ -6,11 +6,44 @@
 #include <string>
 #include <sstream>
 
+#define ASSERT(x) if (!(x)) __debugbreak();
+#define GLCall(x) GLClearError();\
+	x;\
+	ASSERT(GLLogCall(#x, __FILE__, __LINE__))
+
 struct ShaderProgrameSource
 {
 	std::string VertexSource;
 	std::string FragmentSource;
 };
+
+static void GLClearError() 
+{
+	while (glGetError() != GL_NO_ERROR);
+}
+// first
+// static void GLCheckError() 
+// {
+// 	while (GLenum  error = glGetError())
+// 	{
+// 		std::cout << "[OpenGL Error] (" << error << std::endl;
+// 	}
+// 
+// }
+
+// second  GLCAll is better, more clear.
+static bool GLLogCall(const char* function, const char* file, int line) 
+{
+	while (GLenum  error = glGetError())
+	{
+		std::cout << "[OpenGL Error] (" << error << "):"<< function <<" "
+			<<file<< ":" << line << std::endl;
+		return false;
+	}
+	return true;
+}
+
+
 
 static ShaderProgrameSource ParseShader(const std::string& filepath)
 {
@@ -145,7 +178,10 @@ int main(void)
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		//GLClearError();
+		GLCall(glDrawElements(GL_TRIANGLES, 6, GL_INT, nullptr));
+		// GLCheckError(); // first
+		//ASSERT(GLLogCall());
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
 
 // 		glBegin(GL_TRIANGLES);
