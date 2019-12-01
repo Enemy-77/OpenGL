@@ -8,11 +8,6 @@
 	x;\
 	ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 
-struct ShaderProgrameSource
-{
-	std::string VertexSource;
-	std::string FragmentSource;
-};
 
 void GLClearError();
 
