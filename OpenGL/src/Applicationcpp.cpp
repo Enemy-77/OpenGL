@@ -15,6 +15,9 @@
 #include "Texture.h"
 #include "Shader.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 int main(void)
 {
 	GLFWwindow* window;
@@ -46,7 +49,6 @@ int main(void)
 		std::cout << "Error!" << std::endl;
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
-
 	{
 		float position[] = {
 			-0.5f, -0.5f, 0.0f, 0.0f, // 0
@@ -73,10 +75,12 @@ int main(void)
 
 		IndexBuffer ib(indices, 6);
 
+		glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
 
 		Shader shader("res/shaders/Basic.shader");
 		shader.Bind();
 		shader.SetUniform4f("texColor", 0.8f, 0.3f, 0.8f, 1.0f);
+		shader.setUniformMat4f("u_MVP", proj);
 
 		Texture texture("res/texture/cpp.png");
 		texture.Bind();
