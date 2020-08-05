@@ -1,0 +1,6 @@
+*.VC.db
+*.sln
+.vs
+*.opendb
+OpenGL/Debug/
+Dependencies
