@@ -110,16 +110,22 @@ int main(void)
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    float position[6] = {
-        -0.5f, -0.5f,
-         0.0f,  0.5f,
-         0.5f, -0.5f
+    float position[] = {
+        -0.5f, -0.5f,  // 0
+         0.5f, -0.5f,  // 1
+         0.5f,  0.5f,  // 2
+        -0.5f,  0.5f   // 3
+    };
+
+    unsigned int indicices[] = {
+        0, 1, 2,
+        2, 3, 0
     };
 
     unsigned int buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(position), position, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), position, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     ///第二个参数是组成一个类型的参数的顶点属性，本例中是2
@@ -128,8 +134,13 @@ int main(void)
     ///告诉GPU数据的layout
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 
-    ///以上是画出三角形这个几何体，shaders 上色
-    
+    /// index buffer object
+    unsigned int ibo;
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indicices, GL_STATIC_DRAW);
+
+    ///以上是画出三角形这个几何体，shaders 上色    
     ShaderProgramSource source = ParseShader("res/shaders/Basic.Shader");
 
     unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
@@ -142,7 +153,7 @@ int main(void)
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
