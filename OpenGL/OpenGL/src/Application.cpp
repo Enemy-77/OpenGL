@@ -6,34 +6,9 @@
 #include <string>
 #include <sstream>
 
-
-#define ASSERT(x) if(!(x)) __debugbreak();
-
-#ifdef DEBUG
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
-
-#else
-#define CLCall(x) x
-
-#endif // DEBUG
-
-static void GLClearError()
-{
-    while (glGetError() != GL_NO_ERROR);
-}
-
-static bool GLLogCall(const char* function, const char* file, int line)
-{
-    while (GLenum error = glGetError())
-    {
-        std::cout << "[OpenGL Error] (" << error << ")" <<function << " " << file << ":" << line  << std::endl;
-        return false;
-    }
-    return true;
-}
-
+#include "Renderer.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 struct ShaderProgramSource
 {
@@ -127,8 +102,6 @@ int main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
-
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
     if (!window)
@@ -147,92 +120,82 @@ int main(void)
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    float position[] = {
-        -0.5f, -0.5f,  // 0
-         0.5f, -0.5f,  // 1
-         0.5f,  0.5f,  // 2
-        -0.5f,  0.5f   // 3
-    };
-
-    unsigned int indicices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
-    unsigned int vao;
-    GLCall(glGenVertexArrays(1, &vao));
-    GLCall(glBindVertexArray(vao));
-
-
-    unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), position, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    ///第二个参数是组成一个类型的参数的顶点属性，本例中是2
-    ///第五个参数是 stride，是指每一类 vertex 需要多大的空间，比如 position 两个float，texture需要两个float，normal需要两个float
-    ///第六个参数是 pointer，是指每个类型的顶点的第一个组成元素在数组中位置。是一个数字，要强化成指针。
-    ///告诉GPU数据的layout
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
-
-    /// index buffer object
-    unsigned int ibo;
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indicices, GL_STATIC_DRAW);
-
-    ///以上是画出三角形这个几何体，shaders 上色    
-    ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
-    unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-    glUseProgram(shader);
-    
-    int location = glGetUniformLocation(shader, "u_Color");
-    ASSERT(location != -1);
-    glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f);
-
-    GLCall(glBindVertexArray(0));
-    GLCall(glUseProgram(0));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-
-
-    float r = 0.0f;
-    float increment = 0.05f;
-    /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
-        glClear(GL_COLOR_BUFFER_BIT);
+        float position[] = {
+            -0.5f, -0.5f,  // 0
+             0.5f, -0.5f,  // 1
+             0.5f,  0.5f,  // 2
+            -0.5f,  0.5f   // 3
+        };
 
-        GLCall(glUseProgram(shader));
-        glUniform4f(location, r, 0.3f, 0.8f, 1.0f);
-        
-        GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
-        GLCall(glEnableVertexAttribArray(0));
-        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
+        unsigned int indices[] = {
+            0, 1, 2,
+            2, 3, 0
+        };
 
-        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+        unsigned int vao;
+        GLCall(glGenVertexArrays(1, &vao));
+        GLCall(glBindVertexArray(vao));
 
+        VertexBuffer vb(position, 4 * 2 * sizeof(float));
 
-        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+        glEnableVertexAttribArray(0);
+        ///第二个参数是组成一个类型的参数的顶点属性，本例中是2
+        ///第五个参数是 stride，是指每一类 vertex 需要多大的空间，比如 position 两个float，texture需要两个float，normal需要两个float
+        ///第六个参数是 pointer，是指每个类型的顶点的第一个组成元素在数组中位置。是一个数字，要强化成指针。
+        ///告诉GPU数据的layout
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 
-        if (r > 1.0f)
-            increment = -0.05f;
-        else if (r < 0.0f)
-            increment = 0.05f;
+        IndexBuffer ib(indices, 6); /// count here
 
-        r += increment;
+        ///以上是画出三角形这个几何体，shaders 上色    
+        ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
+        unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
+        glUseProgram(shader);
 
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
+        int location = glGetUniformLocation(shader, "u_Color");
+        ASSERT(location != -1);
+        glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f);
 
-        /* Poll for and process events */
-        glfwPollEvents();
+        GLCall(glUseProgram(0));
+        GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+        float r = 0.0f;
+        float increment = 0.05f;
+        /* Loop until the user closes the window */
+        while (!glfwWindowShouldClose(window))
+        {
+            /* Render here */
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            GLCall(glUseProgram(shader));
+            glUniform4f(location, r, 0.3f, 0.8f, 1.0f);
+            //         
+            //         vb.Bind();
+            //         GLCall(glEnableVertexAttribArray(0));
+            //         GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
+
+            ib.Bind();
+
+            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+            if (r > 1.0f)
+                increment = -0.05f;
+            else if (r < 0.0f)
+                increment = 0.05f;
+
+            r += increment;
+
+            /* Swap front and back buffers */
+            glfwSwapBuffers(window);
+
+            /* Poll for and process events */
+            glfwPollEvents();
+        }
+
+        glDeleteProgram(shader);
     }
-
-    glDeleteProgram(shader);
 
     glfwTerminate();
     return 0;
