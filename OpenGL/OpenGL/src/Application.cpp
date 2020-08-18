@@ -9,6 +9,7 @@
 #include "Renderer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "VertexArray.h"
 
 struct ShaderProgramSource
 {
@@ -133,11 +134,11 @@ int main(void)
             2, 3, 0
         };
 
-        unsigned int vao;
-        GLCall(glGenVertexArrays(1, &vao));
-        GLCall(glBindVertexArray(vao));
-
+        VertexArray va;
         VertexBuffer vb(position, 4 * 2 * sizeof(float));
+        VertexBufferLayout layout;
+        layout.Push<float>(2);
+        va.AddBuffer(vb, layout);
 
         glEnableVertexAttribArray(0);
         ///第二个参数是组成一个类型的参数的顶点属性，本例中是2
@@ -157,6 +158,7 @@ int main(void)
         ASSERT(location != -1);
         glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f);
 
+        va.Unbind();
         GLCall(glUseProgram(0));
         GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
         GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
@@ -171,11 +173,8 @@ int main(void)
 
             GLCall(glUseProgram(shader));
             glUniform4f(location, r, 0.3f, 0.8f, 1.0f);
-            //         
-            //         vb.Bind();
-            //         GLCall(glEnableVertexAttribArray(0));
-            //         GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
 
+            va.Bind();
             ib.Bind();
 
             GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
@@ -193,10 +192,8 @@ int main(void)
             /* Poll for and process events */
             glfwPollEvents();
         }
-
         glDeleteProgram(shader);
     }
-
     glfwTerminate();
     return 0;
 }
