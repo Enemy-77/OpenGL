@@ -9,6 +9,9 @@
 #include "VertexBufferLayout.h"
 #include "Texture.h"
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 int main(void)
 {
     GLFWwindow* window;
@@ -60,7 +63,6 @@ int main(void)
         VertexBufferLayout layout;
         layout.Push<float>(2);
         layout.Push<float>(2);
-
         va.AddBuffer(vb, layout);
 
         glEnableVertexAttribArray(0);
@@ -72,9 +74,13 @@ int main(void)
 
         IndexBuffer ib(indices, 6); /// count here
 
+        glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+
+
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
         shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
+        shader.SetUniformMat4f("u_MVP", proj);
 
         va.Unbind();
         shader.Unbind();
@@ -82,7 +88,6 @@ int main(void)
         ib.Unbind();
 
         Renderer renderer;
-
         float r = 0.0f;
         float increment = 0.05f;
         /* Loop until the user closes the window */
@@ -96,14 +101,11 @@ int main(void)
             texture.Bind();
             shader.SetUniform1i("u_Texture", 0);
             renderer.Draw(va, ib, shader);
-
             if (r > 1.0f)
                 increment = -0.05f;
             else if (r < 0.0f)
                 increment = 0.05f;
-
             r += increment;
-
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
             /* Poll for and process events */
