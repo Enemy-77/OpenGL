@@ -12,6 +12,9 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw_gl3.h"
+
 int main(void)
 {
     GLFWwindow* window;
@@ -43,12 +46,11 @@ int main(void)
 
     {
         float position[] = {
-            -0.5f, -0.5f, 0.0f, 0.0f, // 0
-             0.5f, -0.5f, 1.0f, 0.0f, // 1
-             0.5f,  0.5f, 1.0f, 1.0f, // 2
-            -0.5f,  0.5f, 0.0f, 1.0f  // 3
+            100.0f, 100.0f, 0.0f, 0.0f, // 0
+            200.0f, 100.0f, 1.0f, 0.0f, // 1
+            200.0f, 200.0f, 1.0f, 1.0f, // 2
+            100.0f, 200.0f, 0.0f, 1.0f  // 3
         };
-
         unsigned int indices[] = {
             0, 1, 2,
             2, 3, 0
@@ -65,29 +67,32 @@ int main(void)
         layout.Push<float>(2);
         va.AddBuffer(vb, layout);
 
-        glEnableVertexAttribArray(0);
-        ///第二个参数是组成一个类型的参数的顶点属性，本例中是2
-        ///第五个参数是 stride，是指每一类 vertex 需要多大的空间，比如 position 两个float，texture需要两个float，normal需要两个float
-        ///第六个参数是 pointer，是指每个类型的顶点的第一个组成元素在数组中位置。是一个数字，要强化成指针。
-        ///告诉GPU数据的layout
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
         IndexBuffer ib(indices, 6); /// count here
 
-        glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
-
+        glm::mat4 proj = glm::ortho(0.0f, 960.0f, 0.0f, 540.f, -1.0f, 1.0f);
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-100, 0, 0));
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
         shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
-        shader.SetUniformMat4f("u_MVP", proj);
+
+        Texture texture("res/textures/texture.jpg");
+        texture.Bind();
+        shader.SetUniform1i("u_Texture", 0);
 
         va.Unbind();
-        shader.Unbind();
         vb.Unbind();
         ib.Unbind();
+        shader.Unbind();
 
         Renderer renderer;
+
+        ImGui::CreateContext();
+        ImGui_ImplGlfwGL3_Init(window, true);
+        ImGui::StyleColorsDark();
+
+        glm::vec3 translation(200, 200, 0);
+
         float r = 0.0f;
         float increment = 0.05f;
         /* Loop until the user closes the window */
@@ -95,23 +100,42 @@ int main(void)
         {
             /* Render here */
             renderer.clear();
+
+            ImGui_ImplGlfwGL3_NewFrame();
+
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
+            glm::mat4 mvp = proj * view * model;
+
+
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
-            Texture texture("res/textures/texture.jpg");
-            texture.Bind();
-            shader.SetUniform1i("u_Texture", 0);
+            shader.SetUniformMat4f("u_MVP", mvp);
+
             renderer.Draw(va, ib, shader);
             if (r > 1.0f)
                 increment = -0.05f;
             else if (r < 0.0f)
                 increment = 0.05f;
             r += increment;
+
+
+            {
+                ImGui::SliderFloat3("Translation", &translation.x, 0.0f, 960.0f);            // Edit 1 float using a slider from 0.0f to 1.0f    
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            }
+
+
+            ImGui::Render();
+            ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
+
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
             /* Poll for and process events */
             glfwPollEvents();
         }
     }
+    ImGui_ImplGlfwGL3_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 }
